@@ -85,7 +85,7 @@ python -m unittest
 docker build -t cardiocare:1.0 .
 
 # 1) Windows PowerShell:
-docker run CardioCare:1.0
+docker run cardiocare:1.0
 
 ```
 
