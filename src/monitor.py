@@ -43,9 +43,9 @@ def main():
     data_path = os.path.join(current_dir, "../data/processed.cleveland.data")
     model_path = os.path.join(current_dir, "models/final_model.pkl")
     
-    print("--- 1. Loading Data and Model ---")
+    print("--- 1. 데이터 및 모델 로드 중 ---")
     if not os.path.exists(model_path):
-        print(f"Error: Model file not found at {model_path}. Please run train.py first.")
+        print(f"오류: {model_path} 경로에서 모델 파일을 찾을 수 없습니다. 먼저 train.py를 실행하세요.")
         return
         
     with open(model_path, "rb") as f:
@@ -62,19 +62,19 @@ def main():
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    print(f"Loaded train features shape: {X_train.shape}")
-    print(f"Loaded test features shape: {X_test.shape}")
+    print(f"로드된 학습 데이터(특성) 크기: {X_train.shape}")
+    print(f"로드된 테스트 데이터(특성) 크기: {X_test.shape}")
     
-    print("\n--- 2. Running Instrumented Inference ---")
+    print("\n--- 2. 계측이 적용된 추론 실행 ---")
     test_preds = instrumented_inference(X_test, model, true_labels=y_test.values)
-    print(f"Inference completed and logged to {log_file}")
+    print(f"추론이 완료되었으며 {log_file}에 기록되었습니다.")
     
-    print("\n--- 3. Simulating Feature Drift ---")
+    print("\n--- 3. 데이터(특성) 드리프트 시뮬레이션 ---")
     # chol (cholesterol) 특성에 대해 평균을 +30 이동하고 분산을 증가시킵니다.
     # 원래 chol 분포
     orig_chol_mean = X_test['chol'].mean()
     orig_chol_std = X_test['chol'].std()
-    print(f"Original 'chol' - Mean: {orig_chol_mean:.2f}, Std: {orig_chol_std:.2f}")
+    print(f"기존 'chol'(콜레스테롤) - 평균: {orig_chol_mean:.2f}, 표준편차: {orig_chol_std:.2f}")
     
     X_test_drifted = X_test.copy()
     # 분산을 증가시키기 위해 평균과의 편차를 1.5배 키우고, 평균 자체를 +30 이동시킵니다.
@@ -82,34 +82,34 @@ def main():
     
     drifted_chol_mean = X_test_drifted['chol'].mean()
     drifted_chol_std = X_test_drifted['chol'].std()
-    print(f"Drifted 'chol' - Mean: {drifted_chol_mean:.2f}, Std: {drifted_chol_std:.2f}")
+    print(f"드리프트된 'chol'(콜레스테롤) - 평균: {drifted_chol_mean:.2f}, Std: {drifted_chol_std:.2f}")
     
-    print("\n--- 4. Kolmogorov-Smirnov Test for Continuous Features ---")
+    print("\n--- 4. 연속형 변수들에 대한 콜모고로프-스미르노프(KS) 검정 ---")
     continuous_features = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
     drifted_features = []
     
     for col in continuous_features:
         stat, p_val = ks_2samp(X_train[col], X_test_drifted[col])
         is_drifted = p_val < 0.05
-        print(f"Feature '{col:8s}': KS stat = {stat:.4f}, p-value = {p_val:.4e} {'[DRIFT DETECTED!]' if is_drifted else '[Normal]'}")
+        print(f"변수 '{col:8s}': KS 통계량 = {stat:.4f}, p-value = {p_val:.4e} {'[드리프트 감지!]' if is_drifted else '[정상]'}")
         if is_drifted:
             drifted_features.append(col)
             
-    print(f"Flagged drifted features (p < 0.05): {drifted_features}")
+    print(f"드리프트 판정된 변수 목록 (p < 0.05): {drifted_features}")
     
-    print("\n--- 5. Performance Comparison (Original vs Drifted) ---")
+    print("\n--- 5. 모델 성능 비교 (기존 데이터 vs 드리프트 데이터) ---")
     orig_bal_acc = balanced_accuracy_score(y_test, test_preds)
     
     drifted_preds = model.predict(X_test_drifted)
     drifted_bal_acc = balanced_accuracy_score(y_test, drifted_preds)
     
-    print(f"Original Test Set Balanced Accuracy: {orig_bal_acc:.4f}")
-    print(f"Drifted Test Set Balanced Accuracy:  {drifted_bal_acc:.4f}")
-    print(f"Performance Drop: {orig_bal_acc - drifted_bal_acc:.4f}")
+    print(f"기존 테스트 세트 균형 정확도(Balanced Accuracy): {orig_bal_acc:.4f}")
+    print(f"드리프트 테스트 세트 균형 정확도(Balanced Accuracy):  {drifted_bal_acc:.4f}")
+    print(f"성능 저하 폭(하락 수치): {orig_bal_acc - drifted_bal_acc:.4f}")
     
     instrumented_inference(X_test_drifted, model, true_labels=y_test.values)
     
-    print("\n--- 6. Generating Drift Metrics Time-series Plot ---")
+    print("\n--- 6. 드리프트 지표 시계열 그래프 생성 중 ---")
     # 10일간 서서히 chol 수치가 증가(평균 +0에서 +30까지 점진적으로 증가)하는 시나리오를 시뮬레이션합니다.
     days = list(range(1, 11))
     daily_bal_accs = []
@@ -156,7 +156,7 @@ def main():
     fig.tight_layout()
     plt.savefig(plot_path)
     plt.close()
-    print(f"Saved time-series plot to {plot_path}")
+    print(f"시계열 그래프가 {plot_path}에 성공적으로 저장되었습니다.")
 
 if __name__ == "__main__":
     main()
