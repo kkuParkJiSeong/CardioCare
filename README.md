@@ -79,20 +79,14 @@ python -m unittest
 ```
 
 ### 5) Docker 빌드 및 컨테이너 기반 샘플 입력 추론 실행
-`Dockerfile`을 빌드한 뒤 제공되는 소량 배치 샘플 입력 파일(`sample_input.csv`)을 인풋으로 전달해 예측 결과를 정상적으로 출력받습니다:
+`Dockerfile`을 빌드한 뒤 예측 결과를 정상적으로 출력받습니다:
 ```bash
 # Docker 이미지 빌드 (태그 cardiocare:1.0)
 docker build -t cardiocare:1.0 .
 
-# sample_input.csv 에 대한 컨테이너 추론 실행 및 결과 저장 (사용 환경에 맞게 선택 실행)
 # 1) Windows PowerShell:
-docker run --rm -v ${pwd}:/workspace cardiocare:1.0 --input /workspace/sample_input.csv --output /workspace/sample_output.csv
+docker run CardioCare:1.0
 
-# 2) macOS / Linux / Git Bash:
-docker run --rm -v $(pwd):/workspace cardiocare:1.0 --input /workspace/sample_input.csv --output /workspace/sample_output.csv
-
-# 3) Windows CMD:
-docker run --rm -v %cd%:/workspace cardiocare:1.0 --input /workspace/sample_input.csv --output /workspace/sample_output.csv
 ```
 
 ### 6) 드리프트 모니터링 실행 (`monitor.py`)
