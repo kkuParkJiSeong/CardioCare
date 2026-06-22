@@ -1,0 +1,1 @@
+# Allow automatic test discovery
