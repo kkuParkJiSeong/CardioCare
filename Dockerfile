@@ -6,8 +6,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy codebase and data (needed for inference if testing locally in container)
+# Copy codebase, data, and sample input
 COPY src/ /app/src/
+COPY data/ /app/data/
 
 # Set the default entrypoint to the inference script
 ENTRYPOINT ["python", "src/inference.py"]

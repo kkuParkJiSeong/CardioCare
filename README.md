@@ -50,16 +50,19 @@ CardioCare/
 제출 시점에 채점자가 파이프라인을 검증할 수 있도록 제공되는 6가지 "완료" 기준 실행 방법입니다.
 
 ### 1) 최종 보고서 검토 (report.md / report.pdf)
-* 프로젝트 루트 경로에 위치한 **[report.md](file:///d:/Programings/projects/CardioCare/report.md)** 파일을 열고 무엇을, 왜 만들었는지 즉시 확인할 수 있습니다.
-* (필요 시 VS Code 등의 내보내기 툴을 이용하여 PDF 파일로 변환 및 열람이 가능합니다)
+* 프로젝트 루트 경로에 위치한 **[report.pdf](file:///d:/Programings/projects/CardioCare/report.pdf)** 파일을 열고 무엇을, 왜 만들었는지 즉시 확인할 수 있습니다.
 
 ### 2) 저장소 복제 및 의존성 설치 후 한 줄 학습 실행
-의존성을 설치하고 한 줄 명령어를 통해 전체 데이터 로드, 전처리, 3종 모델 학습 비교 및 하이퍼파라미터 튜닝 파이프라인을 실행합니다:
+저장소를 복제하고 의존성을 설치한 뒤, 한 줄 명령어를 통해 전체 데이터 로드, 전처리, 3종 모델 학습 비교 및 하이퍼파라미터 튜닝 파이프라인을 실행합니다:
 ```bash
-# 의존성 설치
+# 1. 저장소 복제 및 디렉토리 이동
+git clone https://github.com/kkuParkJiSeong/CardioCare.git
+cd CardioCare
+
+# 2. 의존성 설치
 pip install -r requirements.txt
 
-# 파이프라인 학습 실행
+# 3. 파이프라인 학습 실행
 python src/train.py
 ```
 
@@ -81,8 +84,15 @@ python -m unittest
 # Docker 이미지 빌드 (태그 cardiocare:1.0)
 docker build -t cardiocare:1.0 .
 
-# sample_input.csv 에 대한 컨테이너 추론 실행 및 결과 저장
+# sample_input.csv 에 대한 컨테이너 추론 실행 및 결과 저장 (사용 환경에 맞게 선택 실행)
+# 1) Windows PowerShell:
 docker run --rm -v ${pwd}:/workspace cardiocare:1.0 --input /workspace/sample_input.csv --output /workspace/sample_output.csv
+
+# 2) macOS / Linux / Git Bash:
+docker run --rm -v $(pwd):/workspace cardiocare:1.0 --input /workspace/sample_input.csv --output /workspace/sample_output.csv
+
+# 3) Windows CMD:
+docker run --rm -v %cd%:/workspace cardiocare:1.0 --input /workspace/sample_input.csv --output /workspace/sample_output.csv
 ```
 
 ### 6) 드리프트 모니터링 실행 (`monitor.py`)

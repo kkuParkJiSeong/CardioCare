@@ -4,12 +4,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split, GridSearchCV, KFold, cross_validate
+from sklearn.model_selection import train_test_split, GridSearchCV, KFold, StratifiedKFold, cross_validate
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
     balanced_accuracy_score,
     precision_score,
@@ -44,8 +45,16 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     print(f"Data Split: Train shape={X_train.shape}, Test shape={X_test.shape}")
     
+    # Disable autologging to prevent MLflow from automatically creating duplicate runs and charts
+    mlflow.autolog(disable=True)
+    
     # Set MLflow experiment
-    mlflow.set_experiment("CardioCare_Heart_Disease_Prediction")
+    experiment_name = "CardioCare_Heart_Disease_Prediction"
+    client = mlflow.MlflowClient()
+    exp = client.get_experiment_by_name(experiment_name)
+    if exp is not None and exp.lifecycle_stage == "deleted":
+        client.restore_experiment(exp.experiment_id)
+    mlflow.set_experiment(experiment_name)
     
     # Models to compare
     models_config = {
@@ -55,7 +64,7 @@ def main():
             "params": {"C": 1.0}
         },
         "SVC": {
-            "model": SVC(probability=True, random_state=42),
+            "model": CalibratedClassifierCV(SVC(random_state=42), ensemble=False),
             "family": "svc",
             "params": {"C": 1.0, "kernel": "rbf"}
         },
@@ -106,8 +115,8 @@ def main():
         print(f"F1 Score: {f1:.4f}")
         print(f"Confusion Matrix:\n{cm}")
         
-        # 5-fold cross validation for evaluation
-        cv = KFold(n_splits=5, shuffle=True, random_state=42)
+        # 5-fold cross validation for evaluation (using StratifiedKFold to maintain class balance)
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         cv_scores = cross_validate(pipeline, X_train, y_train, cv=cv, scoring=['balanced_accuracy', 'recall', 'f1'])
         cv_bal_acc = cv_scores['test_balanced_accuracy'].mean()
         cv_recall = cv_scores['test_recall'].mean()
@@ -174,7 +183,13 @@ def main():
             os.remove(features_file)
             
             # Log model
-            mlflow.sklearn.log_model(pipeline, artifact_path="model")
+            mlflow.sklearn.log_model(
+                pipeline, name="model",
+                skops_trusted_types=[
+                    "sklearn.calibration._CalibratedClassifier",
+                    "sklearn.calibration._SigmoidCalibration"
+                ]
+            )
             
     # 4. Identify Best Model & Perform Hyperparameter Tuning
     # 임상 맥락에서 False Negative를 낮추는 것이 가장 중요하므로 CV Recall을 일차 기준으로 하여 가장 우수한 모델을 선정합니다.
@@ -192,9 +207,9 @@ def main():
         }
     elif best_candidate_name == "SVC":
         param_grid = {
-            'classifier__C': [0.1, 1.0, 10.0],
-            'classifier__kernel': ['linear', 'rbf'],
-            'classifier__class_weight': [None, 'balanced']
+            'classifier__estimator__C': [0.1, 1.0, 10.0],
+            'classifier__estimator__kernel': ['linear', 'rbf'],
+            'classifier__estimator__class_weight': [None, 'balanced']
         }
     elif best_candidate_name == "Random Forest":
         param_grid = {
@@ -204,7 +219,7 @@ def main():
         }
         
     print(f"Performing GridSearchCV for {best_candidate_name} with parameters: {param_grid}")
-    cv = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     grid_search = GridSearchCV(
         estimator=best_pipeline,
         param_grid=param_grid,
@@ -263,7 +278,13 @@ def main():
         os.remove(cm_path)
         
         # Log model
-        mlflow.sklearn.log_model(best_model, artifact_path="model")
+        mlflow.sklearn.log_model(
+            best_model, name="model",
+            skops_trusted_types=[
+                "sklearn.calibration._CalibratedClassifier",
+                "sklearn.calibration._SigmoidCalibration"
+            ]
+        )
         
     # Save final model to disk (using pickle)
     models_dir = os.path.join(current_dir, "models")
